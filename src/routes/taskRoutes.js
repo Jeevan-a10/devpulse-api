@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const taskController = require('../controllers/taskController');
+const { protect, optionalAuth } = require('../middleware/auth');
 const {
   validateCreateTask,
   validateUpdateTask,
@@ -10,10 +11,13 @@ const {
 // Aggregate statistics
 router.get('/stats', taskController.getTaskStats);
 
-// Collection operations
+// User-scoped tasks
+router.get('/my', protect, taskController.getMyTasks);
+
+// Collection operations (with optional auth for creator tracking)
 router.route('/')
   .get(taskController.getTasks)
-  .post(validateCreateTask, taskController.createTask);
+  .post(optionalAuth, validateCreateTask, taskController.createTask);
 
 // Individual item operations
 router.route('/:id')

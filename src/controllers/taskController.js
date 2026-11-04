@@ -130,6 +130,7 @@ const getTaskById = async (req, res, next) => {
 const createTask = async (req, res, next) => {
   try {
     const { title, description, category, status, priority, tags, dueDate } = req.body;
+    const userId = req.user ? (req.user._id || req.user.id) : null;
 
     if (isDbConnected()) {
       const newTask = await Task.create({
@@ -140,6 +141,7 @@ const createTask = async (req, res, next) => {
         priority,
         tags,
         dueDate,
+        user: userId,
       });
       return res.status(201).json({ success: true, data: newTask });
     }
@@ -156,6 +158,7 @@ const createTask = async (req, res, next) => {
       priority: priority || 'medium',
       tags: tags || [],
       dueDate: dueDate || null,
+      user: userId,
       completedAt: status === 'completed' ? new Date().toISOString() : null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -283,6 +286,34 @@ const getTaskStats = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc    Get tasks assigned to or created by current authenticated user
+ * @route   GET /api/tasks/my
+ */
+const getMyTasks = async (req, res, next) => {
+  try {
+    const userId = req.user._id || req.user.id;
+
+    if (isDbConnected()) {
+      const tasks = await Task.find({ user: userId }).sort({ createdAt: -1 });
+      return res.json({
+        success: true,
+        count: tasks.length,
+        data: tasks,
+      });
+    }
+
+    const filtered = inMemoryTasks.filter(t => String(t.user) === String(userId));
+    return res.json({
+      success: true,
+      count: filtered.length,
+      data: filtered,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   getTasks,
   getTaskById,
@@ -290,4 +321,5 @@ module.exports = {
   updateTask,
   deleteTask,
   getTaskStats,
+  getMyTasks,
 };
