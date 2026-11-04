@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const Task = require('../models/Task');
+const { logActivity } = require('./activityController');
 
 // In-memory fallback dataset for seamless offline / zero-database operation
 let inMemoryTasks = [
@@ -132,6 +133,8 @@ const createTask = async (req, res, next) => {
     const { title, description, category, status, priority, tags, dueDate } = req.body;
     const userId = req.user ? (req.user._id || req.user.id) : null;
 
+    const actorName = req.user ? req.user.name : 'Developer';
+
     if (isDbConnected()) {
       const newTask = await Task.create({
         title,
@@ -143,6 +146,16 @@ const createTask = async (req, res, next) => {
         dueDate,
         user: userId,
       });
+
+      await logActivity({
+        user: userId,
+        userName: actorName,
+        action: 'task_created',
+        entityType: 'Task',
+        entityId: newTask._id,
+        details: `Created task: ${newTask.title}`,
+      });
+
       return res.status(201).json({ success: true, data: newTask });
     }
 
@@ -165,6 +178,15 @@ const createTask = async (req, res, next) => {
     };
     inMemoryTasks.unshift(newTask);
 
+    await logActivity({
+      user: userId,
+      userName: actorName,
+      action: 'task_created',
+      entityType: 'Task',
+      entityId: id,
+      details: `Created task: ${newTask.title}`,
+    });
+
     return res.status(201).json({ success: true, data: newTask });
   } catch (err) {
     next(err);
@@ -178,6 +200,8 @@ const createTask = async (req, res, next) => {
 const updateTask = async (req, res, next) => {
   try {
     const { id } = req.params;
+    const userId = req.user ? (req.user._id || req.user.id) : null;
+    const actorName = req.user ? req.user.name : 'Developer';
 
     if (isDbConnected() && mongoose.isValidObjectId(id)) {
       const updateData = { ...req.body };
@@ -195,6 +219,22 @@ const updateTask = async (req, res, next) => {
       if (!task) {
         return res.status(404).json({ success: false, message: 'Task not found' });
       }
+
+      const action = updateData.status === 'completed'
+        ? 'task_completed'
+        : updateData.status
+        ? 'task_status_changed'
+        : 'task_updated';
+
+      await logActivity({
+        user: userId,
+        userName: actorName,
+        action,
+        entityType: 'Task',
+        entityId: task._id,
+        details: `${action === 'task_completed' ? 'Completed' : 'Updated'} task: ${task.title}`,
+      });
+
       return res.json({ success: true, data: task });
     }
 
@@ -217,6 +257,22 @@ const updateTask = async (req, res, next) => {
     }
 
     inMemoryTasks[index] = updated;
+
+    const action = req.body.status === 'completed'
+      ? 'task_completed'
+      : req.body.status
+      ? 'task_status_changed'
+      : 'task_updated';
+
+    await logActivity({
+      user: userId,
+      userName: actorName,
+      action,
+      entityType: 'Task',
+      entityId: String(id),
+      details: `${action === 'task_completed' ? 'Completed' : 'Updated'} task: ${updated.title}`,
+    });
+
     return res.json({ success: true, data: updated });
   } catch (err) {
     next(err);
@@ -230,12 +286,24 @@ const updateTask = async (req, res, next) => {
 const deleteTask = async (req, res, next) => {
   try {
     const { id } = req.params;
+    const userId = req.user ? (req.user._id || req.user.id) : null;
+    const actorName = req.user ? req.user.name : 'Developer';
 
     if (isDbConnected() && mongoose.isValidObjectId(id)) {
       const task = await Task.findByIdAndDelete(id);
       if (!task) {
         return res.status(404).json({ success: false, message: 'Task not found' });
       }
+
+      await logActivity({
+        user: userId,
+        userName: actorName,
+        action: 'task_deleted',
+        entityType: 'Task',
+        entityId: task._id,
+        details: `Deleted task: ${task.title}`,
+      });
+
       return res.json({ success: true, message: 'Task removed successfully' });
     }
 
@@ -244,7 +312,17 @@ const deleteTask = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Task not found' });
     }
 
-    inMemoryTasks.splice(index, 1);
+    const deleted = inMemoryTasks.splice(index, 1)[0];
+
+    await logActivity({
+      user: userId,
+      userName: actorName,
+      action: 'task_deleted',
+      entityType: 'Task',
+      entityId: String(id),
+      details: `Deleted task: ${deleted ? deleted.title : id}`,
+    });
+
     return res.json({ success: true, message: 'Task removed successfully' });
   } catch (err) {
     next(err);

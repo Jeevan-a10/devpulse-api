@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const { logActivity } = require('./activityController');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'devpulse_jwt_secret_dev_key_2026';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
@@ -77,6 +78,15 @@ const register = async (req, res, next) => {
 
       const token = user.generateAuthToken();
 
+      await logActivity({
+        user: user._id,
+        userName: user.name,
+        action: 'user_registered',
+        entityType: 'User',
+        entityId: user._id,
+        details: `Registered new user: ${user.name} (${user.role})`,
+      });
+
       return res.status(201).json({
         success: true,
         token,
@@ -115,6 +125,15 @@ const register = async (req, res, next) => {
     };
 
     inMemoryUsers.push(newUser);
+
+    await logActivity({
+      user: newUser._id,
+      userName: newUser.name,
+      action: 'user_registered',
+      entityType: 'User',
+      entityId: newId,
+      details: `Registered new user: ${newUser.name} (${newUser.role})`,
+    });
 
     const token = signToken({
       id: newUser._id,

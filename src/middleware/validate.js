@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 
 const VALID_CATEGORIES = ['Dev', 'Backend', 'Frontend', 'DevOps', 'Architecture', 'Testing', 'General'];
 const VALID_STATUSES = ['pending', 'in-progress', 'completed'];
+const VALID_MILESTONE_STATUSES = ['planning', 'in-progress', 'completed'];
 const VALID_PRIORITIES = ['low', 'medium', 'high', 'urgent'];
 const VALID_ROLES = ['developer', 'lead', 'admin'];
 const EMAIL_REGEX = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,})+$/;
@@ -219,6 +220,100 @@ const validateProfileUpdate = (req, res, next) => {
   next();
 };
 
+/**
+ * Validates milestone creation payload.
+ */
+const validateCreateMilestone = (req, res, next) => {
+  const { title, status, dueDate, progress } = req.body;
+
+  if (!title || typeof title !== 'string' || !title.trim()) {
+    return res.status(400).json({
+      success: false,
+      message: 'Validation failed: milestone title is required',
+    });
+  }
+
+  if (title.trim().length > 100) {
+    return res.status(400).json({
+      success: false,
+      message: 'Validation failed: milestone title cannot exceed 100 characters',
+    });
+  }
+
+  if (status && !VALID_MILESTONE_STATUSES.includes(status)) {
+    return res.status(400).json({
+      success: false,
+      message: `Validation failed: invalid milestone status. Allowed values: ${VALID_MILESTONE_STATUSES.join(', ')}`,
+    });
+  }
+
+  if (dueDate && isNaN(Date.parse(dueDate))) {
+    return res.status(400).json({
+      success: false,
+      message: 'Validation failed: dueDate must be a valid ISO date string',
+    });
+  }
+
+  if (progress !== undefined) {
+    const num = Number(progress);
+    if (isNaN(num) || num < 0 || num > 100) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed: progress must be a number between 0 and 100',
+      });
+    }
+  }
+
+  next();
+};
+
+/**
+ * Validates milestone update payload.
+ */
+const validateUpdateMilestone = (req, res, next) => {
+  const { title, status, dueDate, progress } = req.body;
+
+  if (title !== undefined && (!title || typeof title !== 'string' || !title.trim())) {
+    return res.status(400).json({
+      success: false,
+      message: 'Validation failed: title cannot be empty',
+    });
+  }
+
+  if (title && title.trim().length > 100) {
+    return res.status(400).json({
+      success: false,
+      message: 'Validation failed: milestone title cannot exceed 100 characters',
+    });
+  }
+
+  if (status && !VALID_MILESTONE_STATUSES.includes(status)) {
+    return res.status(400).json({
+      success: false,
+      message: `Validation failed: invalid milestone status. Allowed values: ${VALID_MILESTONE_STATUSES.join(', ')}`,
+    });
+  }
+
+  if (dueDate && isNaN(Date.parse(dueDate))) {
+    return res.status(400).json({
+      success: false,
+      message: 'Validation failed: dueDate must be a valid ISO date string',
+    });
+  }
+
+  if (progress !== undefined) {
+    const num = Number(progress);
+    if (isNaN(num) || num < 0 || num > 100) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed: progress must be a number between 0 and 100',
+      });
+    }
+  }
+
+  next();
+};
+
 module.exports = {
   validateCreateTask,
   validateUpdateTask,
@@ -226,8 +321,11 @@ module.exports = {
   validateRegister,
   validateLogin,
   validateProfileUpdate,
+  validateCreateMilestone,
+  validateUpdateMilestone,
   VALID_CATEGORIES,
   VALID_STATUSES,
+  VALID_MILESTONE_STATUSES,
   VALID_PRIORITIES,
   VALID_ROLES,
   EMAIL_REGEX,
