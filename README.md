@@ -1,5 +1,9 @@
 # DevPulse API
 
+![CI Status](https://github.com/Jeevan-a10/devpulse-api/actions/workflows/ci.yml/badge.svg)
+![Tests](https://img.shields.io/badge/tests-57%20passing-brightgreen)
+![License](https://img.shields.io/badge/license-MIT-blue)
+
 RESTful backend service for developer task, milestone, and activity tracking. Built with Node.js, Express, MongoDB, and Mongoose.
 
 ## Overview
