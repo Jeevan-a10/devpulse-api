@@ -7,13 +7,20 @@ const taskRoutes = require('./routes/taskRoutes');
 const authRoutes = require('./routes/authRoutes');
 const milestoneRoutes = require('./routes/milestoneRoutes');
 const activityRoutes = require('./routes/activityRoutes');
+const analyticsRoutes = require('./routes/analyticsRoutes');
+const exportRoutes = require('./routes/exportRoutes');
 const errorHandler = require('./middleware/errorHandler');
+const requestTracer = require('./middleware/requestTracer');
+const rateLimiter = require('./middleware/rateLimiter');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Connect to MongoDB (with graceful fallback if offline)
 connectDB();
+
+// Request Tracing (X-Request-Id & X-Response-Time)
+app.use(requestTracer);
 
 // Security Headers Middleware
 app.use((req, res, next) => {
@@ -22,6 +29,9 @@ app.use((req, res, next) => {
   res.setHeader('X-XSS-Protection', '1; mode=block');
   next();
 });
+
+// Rate Limiter Middleware (150 req/min per IP)
+app.use(rateLimiter({ windowMs: 60 * 1000, max: 150 }));
 
 // Core Middleware
 app.use(cors());
@@ -42,6 +52,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/milestones', milestoneRoutes);
 app.use('/api/activity', activityRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/export', exportRoutes);
 
 // Catch-all 404 for undefined routes
 app.use((req, res) => {

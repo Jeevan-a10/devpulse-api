@@ -13,15 +13,20 @@ DevPulse API is the backend service powering the DevPulse developer platform. It
 - **Task Management**: CRUD operations with category tagging, priority levels, and creator scoping.
 - **Milestones**: Roadmap milestones with target task associations and dynamic progress calculation.
 - **Activity Audit Trail**: Event logging for developer actions with 24-hour velocity metrics.
+- **Velocity Analytics**: Comprehensive engineering metrics, cycle times, priority distribution, and 7-day velocity sparkline.
+- **Data Export & Backups**: Single-click JSON workspace snapshots and formatted CSV tasks export.
+- **Security & Observability**: HTTP security headers, request tracing (`X-Request-Id`, `X-Response-Time`), and in-memory rate limiting.
 - **Data Validation**: Request payload validation for formats, lengths, and schema enums.
 - **Error Handling**: Centralized error middleware handling validation errors, cast errors, duplicate keys, and JWT failures.
 - **In-Memory Fallback**: Standalone fallback mode allowing execution without an active MongoDB connection.
-- **Automated Testing**: 47 unit and integration tests covering auth, tasks, milestones, and activity flows.
+- **Automated Testing**: 57 unit and integration tests covering auth, tasks, milestones, activity, velocity analytics, data exports, and middleware.
+- **Docker Ready**: Multi-stage container build with health checks and non-root execution.
 
 ## Architecture
 
 ```
 devpulse-api/
+├── Dockerfile                    # Multi-stage production container definition
 ├── src/
 │   ├── config/
 │   │   └── db.js                 # Database connection manager
@@ -29,10 +34,14 @@ devpulse-api/
 │   │   ├── authController.js     # User registration, login, profile management
 │   │   ├── taskController.js     # Task CRUD and aggregate stats
 │   │   ├── milestoneController.js# Milestone management and progress calculation
-│   │   └── activityController.js # Activity event logging and metrics
+│   │   ├── activityController.js # Activity event logging and metrics
+│   │   ├── analyticsController.js# Velocity metrics, cycle times, sparkline
+│   │   └── exportController.js   # JSON backup and CSV export engine
 │   ├── middleware/
 │   │   ├── auth.js               # JWT verification and RBAC checks
 │   │   ├── errorHandler.js       # Centralized error handler
+│   │   ├── rateLimiter.js        # Sliding-window rate limiter
+│   │   ├── requestTracer.js      # X-Request-Id & X-Response-Time
 │   │   └── validate.js           # Request payload validators
 │   ├── models/
 │   │   ├── Task.js               # Task schema and lifecycle hooks
@@ -43,13 +52,18 @@ devpulse-api/
 │   │   ├── authRoutes.js         # /api/auth routes
 │   │   ├── taskRoutes.js         # /api/tasks routes
 │   │   ├── milestoneRoutes.js    # /api/milestones routes
-│   │   └── activityRoutes.js     # /api/activity routes
+│   │   ├── activityRoutes.js     # /api/activity routes
+│   │   ├── analyticsRoutes.js    # /api/analytics routes
+│   │   └── exportRoutes.js       # /api/export routes
 │   └── server.js                 # Express server configuration
 ├── tests/
 │   ├── auth.test.js              # Auth & RBAC test suite (21 tests)
 │   ├── task.test.js              # Task validation & controller tests (8 tests)
 │   ├── milestone.test.js         # Milestone CRUD & progress tests (13 tests)
-│   └── activity.test.js          # Activity logging tests (5 tests)
+│   ├── activity.test.js          # Activity logging tests (5 tests)
+│   ├── analytics.test.js         # Engineering velocity tests (3 tests)
+│   ├── export.test.js            # JSON backup & CSV export tests (3 tests)
+│   └── middleware.test.js        # Request tracing & rate limiter tests (4 tests)
 └── package.json
 ```
 
@@ -125,3 +139,10 @@ JWT_EXPIRES_IN=7d
 ### Activity
 - `GET /api/activity` — Recent activity feed
 - `GET /api/activity/summary` — Activity velocity and action counts
+
+### Velocity Analytics
+- `GET /api/analytics/velocity` — Complete engineering velocity, cycle times, priority/category distributions, and 7-day sparkline
+
+### Data Export & Backups
+- `GET /api/export/backup` — Download complete workspace state as formatted JSON
+- `GET /api/export/tasks/csv` — Download task backlog as RFC 4180-compliant CSV

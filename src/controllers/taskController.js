@@ -392,6 +392,16 @@ const getMyTasks = async (req, res, next) => {
   }
 };
 
+/**
+ * Internal raw getter for analytics & export
+ */
+const getRawTasks = async () => {
+  if (isDbConnected()) {
+    return await Task.find({}).lean();
+  }
+  return [...inMemoryTasks];
+};
+
 module.exports = {
   getTasks,
   getTaskById,
@@ -400,4 +410,5 @@ module.exports = {
   deleteTask,
   getTaskStats,
   getMyTasks,
+  getRawTasks,
 };

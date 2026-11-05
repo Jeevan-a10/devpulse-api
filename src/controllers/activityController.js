@@ -162,10 +162,18 @@ const getActivitySummary = async (req, res, next) => {
 const getInMemoryActivities = () => inMemoryActivities;
 const resetInMemoryActivities = () => { inMemoryActivities = []; };
 
+const getRawActivities = async () => {
+  if (isDbConnected()) {
+    return await Activity.find({}).sort({ createdAt: -1 }).lean();
+  }
+  return [...inMemoryActivities];
+};
+
 module.exports = {
   logActivity,
   getActivities,
   getActivitySummary,
   getInMemoryActivities,
   resetInMemoryActivities,
+  getRawActivities,
 };

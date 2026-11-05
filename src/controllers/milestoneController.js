@@ -330,6 +330,13 @@ const getMilestoneStats = async (req, res, next) => {
 
 const getInMemoryMilestones = () => inMemoryMilestones;
 
+const getRawMilestones = async () => {
+  if (isDbConnected()) {
+    return await Milestone.find({}).lean();
+  }
+  return [...inMemoryMilestones];
+};
+
 module.exports = {
   getMilestones,
   getMilestoneById,
@@ -338,4 +345,5 @@ module.exports = {
   deleteMilestone,
   getMilestoneStats,
   getInMemoryMilestones,
+  getRawMilestones,
 };
