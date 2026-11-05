@@ -4,7 +4,7 @@ const connectDB = async () => {
   const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/devpulse';
   try {
     const conn = await mongoose.connect(uri, {
-      serverSelectionTimeoutMS: 2000,
+      serverSelectionTimeoutMS: 8000,
     });
     console.log(`MongoDB connected: ${conn.connection.host}`);
     return conn;
